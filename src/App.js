@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
-import logo from './logo.svg';
-import './App.css';
-import WebRTC from './webrtc';
+import logo from 'logo.svg';
+import 'App.css';
+import WebRTC from 'webrtc/index';
 
 class App extends Component {
 

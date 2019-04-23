@@ -1,6 +1,7 @@
-import iceParser from './utils/iceParser';
+import iceParser from 'utils/iceParser';
 import React from 'react';
 import 'webrtc-adapter';
+import stunServer from './stun-servers.json';
 
 export default class WebRTC extends React.PureComponent{
   constructor (props) {
@@ -11,39 +12,7 @@ export default class WebRTC extends React.PureComponent{
       // these are typically STUN and/or TURN servers. If this isn't specified, the ICE agent may choose to use its own ICE servers; 
       // otherwise, the connection attempt will be made with no STUN or TURN server available, which limits the connection to local peers.
       iceServers: [
-        {urls: [
-          'stun:stun.services.mozilla.com',
-          'stun:sip1.lakedestiny.cordiaip.com',
-          'stun:stun.callwithus.com',
-          'stun:stun.counterpath.net',
-          'stun:stun.ideasip.com',
-          'stun:stun.internetcalls.com',
-          'stun:stun.sipgate.net',
-          'stun:stun.stunprotocol.org',
-          'stun:stun.voip.aebc.com',
-          'stun:stun.voipbuster.com',
-          'stun:stun.voxgratia.org',
-          'stun:stun.xten.com',
-          'stun:stun.l.google.com:19302',
-          'stun:stun1.l.google.com:19302',
-          'stun:stun2.l.google.com:19302',
-          'stun:stun3.l.google.com:19302',
-          'stun:stun4.l.google.com:19302',
-          'stun:stun01.sipphone.com',
-          'stun:stun.ekiga.net',
-          'stun:stun.fwdnet.net',
-          'stun:stun.ideasip.com',
-          'stun:stun.iptel.org',
-          'stun:stun.rixtelecom.se',
-          'stun:stun.schlund.de',
-          'stun:stunserver.org',
-          'stun:stun.softjoys.com',
-          'stun:stun.voiparound.com',
-          'stun:stun.voipbuster.com',
-          'stun:stun.voipstunt.com',
-          'stun:stun.voxgratia.org',
-          'stun:stun.xten.com'
-        ]}
+        {urls: [...stunServer.servers]}
       ],
     
       /** @param iceTransportPolicy */
@@ -63,7 +32,7 @@ export default class WebRTC extends React.PureComponent{
       // "balanced" - On BUNDLE-aware connections, the ICE agent should gather candidates for all of the media types in use (audio, video, and data). Otherwise, the ICE agent should only negotiate one audio and video track on separate transports.
       // "max-compat" - The ICE agent should gather candidates for each track, using separate transports to negotiate all media tracks for connections which aren't BUNDLE-compatible.
       // "max-bundle" - The ICE agent should gather candidates for just one track. If the connection isn't BUNDLE-compatible, then the ICE agent should negotiate just one media track.
-      bundlePolicy: "max-compat",
+      bundlePolicy: "balanced",
     
       /** @param certificates */
       // An Array of objects of type RTCCertificate which are used by the connection for authentication. If this property isn't specified, a set of certificates is generated automatically for each RTCPeerConnection instance. Although only one certificate is used by a given connection, providing certificates for multiple algorithms may improve the odds of successfully connecting in some circumstances. See Using certificates below for additional information.
@@ -100,6 +69,7 @@ export default class WebRTC extends React.PureComponent{
     this.PeerConnection.addEventListener('signalingstatechange', this.onSignalingStateChange);
     this.PeerConnection.addEventListener('statsended', (ev) => console.log('onStatSended', ev));
     this.PeerConnection.addEventListener('track', this.onTrack);
+    this.setupMediaStream();
   }
 
   appendStatus = (info, color = false) => {
@@ -118,6 +88,7 @@ export default class WebRTC extends React.PureComponent{
       case "connecting":
         return this.appendStatus("Peer Connecting...");
       case "connected":
+
         return this.appendStatus("Peer Online");
       case "disconnected":
         return this.appendStatus("Peer Disconnecting...");
@@ -148,10 +119,6 @@ export default class WebRTC extends React.PureComponent{
 
     if (ev.candidate) {
       this.appendStatus(JSON.stringify(iceParser(ev.candidate.candidate, true)), 'green');
-    } else if (!('onicegatheringstatechange' in RTCPeerConnection.prototype)){
-      this.appendStatus('Done!')
-      // this.PeerConnection.close();
-      // this.PeerConnection = null;
     } else {
       this.appendStatus("Generated SDP");
       this.offertext.value = JSON.stringify(this.PeerConnection.localDescription);
@@ -167,6 +134,7 @@ export default class WebRTC extends React.PureComponent{
       case "checking":
         return this.appendStatus("ICE Checking...");
       case "connected":
+        // this.setupMediaStream();
         return this.appendStatus("ICE connected");
       case "disconnected":
         return this.appendStatus("ICE disconnected");
@@ -220,8 +188,10 @@ export default class WebRTC extends React.PureComponent{
 
   onTrack = (ev) => {
     this.appendStatus('---Track---', 'blue');
-    // videoElement.srcObject = ev.streams[0];
-    // hangupButton.disabled = false;
+    this.appendStatus(JSON.stringify(ev), 'blue');
+    console.log(ev);
+    this.remoteVideo.srcObject = ev.streams[0];
+    this.remoteVideo.play();
   }
 
   createOffer = () => {
@@ -311,6 +281,22 @@ export default class WebRTC extends React.PureComponent{
     }
   }
 
+  setupMediaStream = async () => {
+    const options = {
+      video: true,
+      audio: true
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia(options)
+      this.localVideo.srcObject = stream;
+      stream.getTracks().forEach(track => this.PeerConnection.addTrack(track, stream));
+      this.localVideo.play()
+    }catch(e) {
+      console.log(e);
+      this.appendStatus('Unable to create Video/Audio stream', 'red');
+    }
+  }
+
   render () {
     return (
       <>
@@ -341,11 +327,11 @@ export default class WebRTC extends React.PureComponent{
             <div className="video-wrapper">
               <div>
                 <p>Local</p>
-                <video className="video"></video>
+                <video className="video" ref={el => this.localVideo = el}></video>
               </div>
               <div>
                 <p>Remote</p>
-                <video className="video"></video>
+                <video className="video" ref={el => this.remoteVideo = el}></video>
               </div>
             </div>
             <div className="data-wrapper">

@@ -1,0 +1,10 @@
+{
+  "servers": [
+    "stun:stun.voxgratia.org",
+    "stun:stun.xten.com",
+    "stun:stun.ekiga.net",
+    "stun:stun.ideasip.com",
+    "stun:stun.schlund.de",
+    "stun:stun.xten.com"
+  ]
+}

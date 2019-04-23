@@ -1,0 +1,9 @@
+{
+  "servers": [
+    "stun:stun.voiparound.com",
+    "stun:stun.voipbuster.com",
+    "stun:stun.voipstunt.com",
+    "stun:stun.voxgratia.org",
+    "stun:stun.voip.aebc.com"
+  ]
+}

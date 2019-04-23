@@ -1,0 +1,10 @@
+{
+  "servers": [
+    "stun:stun.callwithus.com",
+    "stun:stun.counterpath.net",
+    "stun:stun.ideasip.com",
+    "stun:stun.internetcalls.com",
+    "stun:stun.sipgate.net",
+    "stun:stun.voipbuster.com",
+  ]
+}
