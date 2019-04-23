@@ -327,11 +327,11 @@ export default class WebRTC extends React.PureComponent{
             <div className="video-wrapper">
               <div>
                 <p>Local</p>
-                <video className="video" ref={el => this.localVideo = el}></video>
+                <video className="video" playsInline autoPlay={true} ref={el => this.localVideo = el}></video>
               </div>
               <div>
                 <p>Remote</p>
-                <video className="video" ref={el => this.remoteVideo = el}></video>
+                <video className="video" playsInline autoPlay={true} ref={el => this.remoteVideo = el}></video>
               </div>
             </div>
             <div className="data-wrapper">
