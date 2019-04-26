@@ -2,7 +2,7 @@
 
 export default class wsConection {
   constructor() {
-    this.ws = new WebSocket('wss://localhost:5000/rtcsignaling');
+    this.ws = new WebSocket(process.env.WS_PATH);
     this.ws.addEventListener('open', this.onOpen.bind(this));
     this.ws.addEventListener('message', this.onMessage.bind(this));
     this.ws.addEventListener('close', this.onClose.bind(this));
