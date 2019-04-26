@@ -15,7 +15,8 @@ const Origins = [
   'http://www.mofaqua.com',
   'https://www.mofaqua.com',
   'http://mofaqua.com',
-  'https://mofaqua.com'
+  'https://mofaqua.com',
+  'https://yingxitech.com:5000'
 ];
 
 module.exports = {
