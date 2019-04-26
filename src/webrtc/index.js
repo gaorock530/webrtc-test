@@ -1,11 +1,18 @@
 import iceParser from 'utils/iceParser';
 import React from 'react';
-import 'webrtc-adapter';
+import adapter from 'webrtc-adapter';
 import stunServer from './stun-servers.json';
+import Signal from 'signal';
+
+console.log(adapter);
 
 export default class WebRTC extends React.PureComponent{
   constructor (props) {
     super(props);
+    this.ws = new Signal();
+    this.ws.ws.addEventListener('message', this.onMessage.bind(this));
+    this.ice = [];
+    this.iceTray = [];
     this.configuration = {
       /** @param iceServers */
       // An array of RTCIceServer objects, each describing one server which may be used by the ICE agent; 
@@ -46,7 +53,7 @@ export default class WebRTC extends React.PureComponent{
       // The RTCP mux policy to use when gathering ICE candidates, in order to support non-multiplexed RTCP.
       // "negotiate" - Instructs the ICE agent to gather both RTP and RTCP candidates. If the remote peer can multiplex RTCP, then RTCP candidates are multiplexed atop the corresponding RTP candidates. Otherwise, both the RTP and RTCP candidates are returned, separately.
       // "require" - Tells the ICE agent to gather ICE candidates for only RTP, and to multiplex RTCP atop them. If the remote peer doesn't support RTCP multiplexing, then session negotiation fails.
-      rtcpMuxPolicy: 'negotiate'
+      // rtcpMuxPolicy: 'negotiate'
     
       /** @param sdpSemantics */
       // "plan-b"
@@ -118,6 +125,7 @@ export default class WebRTC extends React.PureComponent{
     this.appendStatus("---IceCandidate---", 'blue');
 
     if (ev.candidate) {
+      this.ws.ws.send(JSON.stringify({type: 'ice', data: ev.candidate}));
       this.appendStatus(JSON.stringify(iceParser(ev.candidate.candidate, true)), 'green');
     } else {
       this.appendStatus("Generated SDP");
@@ -190,11 +198,62 @@ export default class WebRTC extends React.PureComponent{
     this.appendStatus('---Track---', 'blue');
     this.appendStatus(JSON.stringify(ev), 'blue');
     console.log(ev);
-    this.remoteVideo.srcObject = ev.streams[0];
-    this.remoteVideo.play();
+    try{
+      this.remoteVideo.srcObject = ev.streams[0];
+      this.remoteVideo.play()
+    }catch(e) {
+      this.appendStatus(JSON.stringify(e), 'red');
+    }
   }
 
-  createOffer = () => {
+  onMessage = async (e) => {
+    const msg = JSON.parse(e.data);
+    const addIce = async (ice) => {
+      await this.PeerConnection.addIceCandidate(ice);
+    }
+    if (msg.type === 'ice') {
+      if (this.PeerConnection.remoteDescription) {
+        try {
+          const iceNumber = this.iceTray.length;
+          if (iceNumber > 0) {
+            console.log('ice waitting number:', iceNumber);
+            this.iceTray.forEach(addIce);
+            this.iceTray = [];
+          }
+          await this.PeerConnection.addIceCandidate(new RTCIceCandidate(msg.data))
+        }catch(e) {
+          console.warn(e)
+        }
+      } else {
+        this.iceTray.push(new RTCIceCandidate(msg.data));
+      }
+      
+    }
+    if (msg.type === 'offer') {
+      try {
+        await this.PeerConnection.setRemoteDescription(new RTCSessionDescription(msg));
+        this.appendStatus('Set remote SDP success.')
+        const description = await this.PeerConnection.createAnswer();
+        this.appendStatus('Anwser for remote created.');
+        this.PeerConnection.setLocalDescription(description)
+        this.appendStatus('Set Local Description Success.');
+        this.ws.ws.send(JSON.stringify(description));
+      }catch(e) {
+        console.warn(e)
+      }
+    }
+    if (msg.type === 'answer') {
+      try {
+        await this.PeerConnection.setRemoteDescription(new RTCSessionDescription(msg));
+      }catch(e) {
+        console.warn(e)
+      }
+    }
+
+    
+  }
+
+  createOffer = async () => {
     this.status.innerHTML = '';
     
     const offerOption = {
@@ -215,16 +274,18 @@ export default class WebRTC extends React.PureComponent{
       // This option defaults to true (voice activity detection enabled).
       voiceActivityDetection: true
     }
-    this.PeerConnection.createOffer(offerOption)
-      .then(offer => this.PeerConnection.setLocalDescription(new RTCSessionDescription(offer)))
-      .then(() => {
-        this.offer = this.PeerConnection.localDescription
-        this.offertext.value = JSON.stringify(this.offer);
-      })
-      .catch(err => 
-        /* handle error */
-        console.log(err)
-      );
+
+    try {
+      const offer = await this.PeerConnection.createOffer(offerOption)
+      await this.PeerConnection.setLocalDescription(new RTCSessionDescription(offer));
+      const offerText = JSON.stringify(this.PeerConnection.localDescription);
+      this.ws.ws.send(offerText);
+      this.offertext.value = offerText;
+    }catch(e) {
+      console.error(e);
+    }
+    
+    
   }
 
   createAnwser = async () => {
@@ -284,7 +345,7 @@ export default class WebRTC extends React.PureComponent{
   setupMediaStream = async () => {
     const options = {
       video: true,
-      audio: true
+      // audio: true
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia(options)
