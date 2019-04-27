@@ -30,27 +30,29 @@ class RTCSignalingServer {
     ws.id = cuid();
     console.log('new socket open:', ws.id);
     // events handlers on each connection
-    ws.on('message', onMessage.bind(this, ws));
-    ws.on('close', onClose.bind(this, ws));
-    ws.on('error', onError.bind(this, ws));
+    ws.on('message', onMessage);
+    ws.on('close', onClose);
+    ws.on('error', onError);
 
-    function onMessage(ws, data) {
-      console.log('Message received:', data);
-      self.broadcast(data, null, ws.id);
+    function onMessage(e) {
+      const parsedData = JSON.parse(e);
+      console.log('Message received:', parsedData);
+      self.broadcast(parsedData.type, parsedData.data, null, ws.id);
     }
   
     function onClose (code, reason) {
-      console.log('Client disconnected.', reason);
+      console.log('Client disconnected.', code, reason);
     }
     function onError (error) {
       console.log('Error', error);
     }
   }
 
-  broadcast (data, room, feedbackID) {
+  broadcast (type, data, room, feedbackID) {
+    const stringData = JSON.stringify({type, data});
     this.clients.forEach(ws => {
-      if (room && ws.room === room && ((feedbackID && feedbackID !== ws.id) || !feedbackID)) ws.send(data);
-      else if ((feedbackID && feedbackID !== ws.id) || !feedbackID) ws.send(data); 
+      if (room && ws.room === room && ((feedbackID && feedbackID !== ws.id) || !feedbackID)) ws.send(stringData);
+      else if ((feedbackID && feedbackID !== ws.id) || !feedbackID) ws.send(stringData); 
     })
   }
   

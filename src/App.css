@@ -69,14 +69,23 @@ p {
   flex-wrap: wrap;
 }
 
+.video-wrapper>* {
+  position: relative;
+  box-sizing: border-box;
+  flex: 1;
+}
+
 .data-wrapper>*{
   box-sizing: border-box;
   flex: 1;
   padding: 0 5px;
 }
 .video {
-  width: 280px;
-  height: 200px;
+  position: relative;
+  box-sizing: border-box;
+  min-width: 280px;
+  min-height: 200px;
+  width: 100%;
   background-color: orange;
 }
 .messages {
