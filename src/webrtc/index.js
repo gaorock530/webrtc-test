@@ -26,8 +26,13 @@ export default class WebRTCContainer extends React.PureComponent{
   }
 
   startVideo = async () => {
-    this.localVideo.srcObject = await this.webtrc.setupLocalMediaStream();
-    this.webtrc.addStream();
+    try {
+      this.localVideo.srcObject = await this.webtrc.setupLocalMediaStream();
+      this.webtrc.addStream();
+    }catch(e) {
+      
+    }
+    
   }
 
   connect = async () => {

@@ -268,8 +268,8 @@ WebRTC.prototype.onTrack = function (ev) {
 
 const mediaStreamConstraint = {
   video: {
-    width: { min: 1024, ideal: 1280, max: 1920 },
-    height: { min: 776, ideal: 720, max: 1080 },
+    width: { min: 640, ideal: 1280, max: 1920 },
+    height: { min: 480, ideal: 720, max: 1080 },
     frameRate: {min: 24, ideal: 30, max: 60},
     facingMode: "user",     // "environment"
     // deviceId: myPreferredCameraDeviceId
@@ -288,11 +288,12 @@ WebRTC.prototype.setupLocalMediaStream = async function (option) {
     }
   }
   try {
-    const stream = await navigator.mediaDevices.getUserMedia(getUserMediaConstraints(option || {audio: true}));
+    const stream = await navigator.mediaDevices.getUserMedia(getUserMediaConstraints(option || {audio: false}));
     this.localStream = stream;
     return this.localStream;
   }catch(e) {
     console.error('Unable to create Video/Audio stream:', e.toString());
+    throw Error(e);
   }
 }
 
