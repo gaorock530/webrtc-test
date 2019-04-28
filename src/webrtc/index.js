@@ -11,15 +11,17 @@ export default class WebRTCContainer extends React.PureComponent{
 
   componentDidMount () {
     this.webtrc.on('track', (e) => {
-      if (this.remoteVideo.srcObject !== e.streams[0]) {
+      console.log('track:', e);
+      if (e.streams && this.remoteVideo.srcObject !== e.streams[0]) {
         console.log('remotePeerConnection got stream');
         try{
           this.remoteVideo.srcObject = e.streams[0];
-          this.remoteVideo.play();
         }catch(e) {
           console.warn(e);
         }
         
+      }else if (!e.streams){
+        this.remoteVideo.pause();
       }
     });
     // this.webtrc.on('', (e) => console.log(e));
@@ -29,10 +31,18 @@ export default class WebRTCContainer extends React.PureComponent{
     try {
       this.localVideo.srcObject = await this.webtrc.setupLocalMediaStream();
       this.webtrc.addStream();
+      await this.webtrc.createOffer();
     }catch(e) {
-      
+
     }
-    
+  }
+
+  endVideo = async () => {
+    try {
+      this.webtrc.endStream();
+    }catch(e) {
+
+    }
   }
 
   connect = async () => {
@@ -40,8 +50,22 @@ export default class WebRTCContainer extends React.PureComponent{
     if (err) console.log(err);
   }
 
-  disconnect = () => {
+  changeStream = async (e) => {
+    const option = {
+      'video': !!parseInt(this.videoOp.value),
+      'audio': !!parseInt(this.audioOp.value)
+    }
+    try {
+      if (option.video || option.audio) {
+        this.localVideo.srcObject = await this.webtrc.setupLocalMediaStream(option);
+        this.webtrc.addStream();
+      }else {
+        this.webtrc.endStream();
+      }
+      await this.webtrc.createOffer();
+    }catch(e) {
 
+    }
   }
 
   appendStatus = (info, color = false) => {
@@ -68,17 +92,22 @@ export default class WebRTCContainer extends React.PureComponent{
         <div className="webrtc-utils">
           <div className="webrtc-utils-l">
             <div>
-              <select>
-                <option>video</option>
+              <select onChange={this.changeStream} ref={el => this.videoOp = el}>
+                <option value={1}>video on</option>
+                <option value={0}>video off</option>
+              </select>
+              <select onChange={this.changeStream} ref={el => this.audioOp = el}>
+                <option value={1}>audio on</option>
+                <option value={0}>audio off</option>
               </select>
               <button className="offer-button" onClick={this.startVideo}>Setup</button>
               <button className="offer-button" onClick={this.connect}>Start</button>
-              <button className="offer-button" onClick={this.disconnect}>Stop</button>
+              <button className="offer-button" onClick={this.endVideo}>Stop</button>
             </div>
             <div className="video-wrapper">
               <div>
                 <p>Local</p>
-                <video className="video" playsInline autoPlay={true} ref={el => this.localVideo = el}></video>
+                <video className="video" playsInline muted autoPlay={true} ref={el => this.localVideo = el}></video>
               </div>
               <div>
                 <p>Remote</p>

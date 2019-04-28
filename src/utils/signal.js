@@ -103,7 +103,7 @@ Socket.prototype.reset = function () {
 
 Socket.prototype.onOpen = function () {
   if (this.reconnection) this.reconnection.stop();
-  this.eventEmitter.excute('open', {id: this.Token});
+  this.eventEmitter.emit('open', {id: this.Token});
 } 
 
 Socket.prototype.onMessage = function (e) {
@@ -111,23 +111,23 @@ Socket.prototype.onMessage = function (e) {
   if (e.data instanceof ArrayBuffer) parsedData = decode(e.data);
   try {parsedData = JSON.parse(e.data)} catch(e) {}
   const {type, data} = parsedData;
-  this.eventEmitter.excute(type, data);
+  this.eventEmitter.emit(type, data);
 }
 
 Socket.prototype.onClose = function (e) {
-  this.eventEmitter.excute('close', e.code, e.reason || 'normal closing.');
+  this.eventEmitter.emit('close', e.code, e.reason || 'normal closing.');
   this.reset();
   if (this.reconnection && this.isAllowReconnect && e.code < 4000) this.reconnection.start();
 }
 
 Socket.prototype.onError = function (e) {
-  this.eventEmitter.excute('error', e);
+  this.eventEmitter.emit('error', e);
   this.reset();
   if (this.reconnection && this.options.autoreconnect) this.reconnection.start();
 }
 
 Socket.prototype.on = function (event, fn, once) {
-  return this.eventEmitter.add(event, fn, once);
+  return this.eventEmitter.on(event, fn, once);
 }
 
 Socket.prototype.emit = function (type, data) {

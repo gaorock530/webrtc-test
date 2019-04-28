@@ -13,7 +13,7 @@ function Event () {
  * @argument {Boolean} once 
  */
 
-Event.prototype.add = function (evt, fn, once) {
+Event.prototype.on = function (evt, fn, once) {
   if(!this.events[evt]) this.events[evt] = [];
   /**
    * @param {Function} fn
@@ -46,7 +46,7 @@ Event.prototype.del = function (evt, id) {
   }
 }
 
-Event.prototype.excute = function (evt) {
+Event.prototype.emit = function (evt) {
   if (!this.events[evt]) return;
   const args = Array.from(arguments).slice(1);
   this.events[evt].map(a => {

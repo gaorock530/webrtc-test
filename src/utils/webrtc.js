@@ -7,6 +7,7 @@ import stunServer from 'webrtc/stun-servers.json';
 import Event from 'utils/event';
 // import iceParser from 'utils/iceParser';
 import Socket from 'utils/signal';
+import { Promise } from 'q';
 
 const defalutConfiguration = {
   /** @param iceServers */
@@ -153,6 +154,7 @@ WebRTC.prototype.boundSingling = function () {
   this.signaling.on('close', (code, reason) => {
     console.log('socket closed.', code, reason);
   });
+
   this.signaling.on('ice', async (data) => {
     const addIce = async (ice) => {
       await this.PeerConnection.addIceCandidate(new RTCIceCandidate(ice));
@@ -177,14 +179,13 @@ WebRTC.prototype.boundSingling = function () {
     console.log(data);
     
     try {
+      // ('Set remote SDP .')
       await this.PeerConnection.setRemoteDescription(new RTCSessionDescription(data));
-      // this.appendStatus('Set remote SDP success.')
+      // ('Anwser for remote .')
       const description = await this.PeerConnection.createAnswer();
-      // this.appendStatus('Anwser for remote created.');
-      this.PeerConnection.setLocalDescription(description)
-      // this.appendStatus('Set Local Description Success.');
+      // ('Set local SDP .')
+      this.PeerConnection.setLocalDescription(description);
       this.signaling.emit('answer', description);
-      console.log(this.PeerConnection);
     }catch(e) {
       console.warn(e)
     }
@@ -202,10 +203,11 @@ WebRTC.prototype.boundSingling = function () {
 }
 
 WebRTC.prototype.addStream = function () {
-  this.localStream.getTracks().forEach(track => this.PeerConnection.addTrack(track, this.localStream));
+  this.localStream.getTracks().forEach(track => console.log(this.PeerConnection.addTrack(track, this.localStream)));
 }
 
 WebRTC.prototype.endStream = function () {
+  // this.PeerConnection.removeTrack(this.sender);
   this.localStream.getTracks().forEach(track => track.stop());
   this.localStream = null;
 }
@@ -214,13 +216,13 @@ WebRTC.prototype.onConnectionStateChange = function (ev) {
   let state = 0;
   if (ev.target.connectionState=== 'new' || ev.target.connectionState === 'connecting') state = 1;
   else if (ev.target.connectionState === 'connected') state = 2;
-  this.eventEmitter.excute('connectionStateChange', {state, detail: ev.target.connectionState});
+  this.eventEmitter.emit('connectionStateChange', {state, detail: ev.target.connectionState});
 }
 
 WebRTC.prototype.onDataChannel = function (ev) {
   // receiveChannel is set to the value of the event's channel property, 
   // which specifies the RTCDataChannel object representing the data channel linking the remote peer to the local one.
-  this.eventEmitter.excute('dataChannel', ev.channel);
+  this.eventEmitter.emit('dataChannel', ev.channel);
   // let receiveChannel;
   // receiveChannel = ev.channel;
   // receiveChannel.onmessage = (e) => e;
@@ -230,39 +232,39 @@ WebRTC.prototype.onDataChannel = function (ev) {
 
 WebRTC.prototype.onIceCandidate = function (ev) {
   if (ev.candidate) this.signaling.emit('ice', ev.candidate);
-  this.eventEmitter.excute('iceCandidate', ev.candidate || false);
+  this.eventEmitter.emit('iceCandidate', ev.candidate || false);
 }
 
 WebRTC.prototype.onIceConnectionStateChange = function (ev) {
   let state = 0;
   if (ev.target.iceConnectionState === 'new' || ev.target.iceConnectionState === 'checking') state = 1;
   else if (ev.target.iceConnectionState === 'connected' || ev.target.iceConnectionState === 'completed') state = 2;
-  this.eventEmitter.excute('iceConnectionStateChange', {state, detail: ev.target.iceConnectionState});
+  this.eventEmitter.emit('iceConnectionStateChange', {state, detail: ev.target.iceConnectionState});
 }
 
 WebRTC.prototype.onIceGatheringStateChange = function (ev) {
   let state = 0;
   if (ev.target.iceGatheringState === 'new' || ev.target.iceGatheringState === 'gathering') state = 1;
   else if (ev.target.iceGatheringState === 'complete') state = 2;
-  this.eventEmitter.excute('iceGatheringStateChange', {state, detail: ev.target.iceGatheringState});
+  this.eventEmitter.emit('iceGatheringStateChange', {state, detail: ev.target.iceGatheringState});
 }
 
 WebRTC.prototype.onNegotiationNeeded = function (ev) {
-  this.eventEmitter.excute('negotiationNeeded', ev);
+  this.eventEmitter.emit('negotiationNeeded', ev);
 }
 
 /**
  * @description 'stable', 'have-local-offer', 'have-remote-offer', 'have-local-pranswer', 'have-remote-pranswer'
  */
 WebRTC.prototype.onSignalingStateChange = function (ev) {
-  this.eventEmitter.excute('signalingStateChange', {
+  this.eventEmitter.emit('signalingStateChange', {
     state: ev.target.signalingState === 'stable' ? 1:0, 
     detail: ev.target.signalingState});
 }
 
 WebRTC.prototype.onTrack = function (ev) {
   console.log('onTrack event');
-  this.eventEmitter.excute('track', ev);
+  this.eventEmitter.emit('track', ev);
 }
 
 
@@ -288,7 +290,10 @@ WebRTC.prototype.setupLocalMediaStream = async function (option) {
     }
   }
   try {
-    const stream = await navigator.mediaDevices.getUserMedia(getUserMediaConstraints(option || {audio: false}));
+    const setup = getUserMediaConstraints(option || {audio: true});
+    console.log(option)
+    console.log(setup);
+    const stream = await navigator.mediaDevices.getUserMedia(setup);
     this.localStream = stream;
     return this.localStream;
   }catch(e) {
@@ -303,7 +308,7 @@ WebRTC.prototype.createOffer = async function () {
     // This will cause the returned offer to have different credentials than those already in place. 
     // If you then apply the returned offer, ICE will restart. Specify false to keep the same credentials and therefore not restart ICE. 
     // The default is false.
-    iceRestart: true,
+    iceRestart: false,
 
     offerToReceiveAudio: 1 || 0,
     offerToReceiveVideo: 1 || 0,
@@ -328,7 +333,7 @@ WebRTC.prototype.createOffer = async function () {
 
 WebRTC.prototype.on = function (event, fn, once) {
   console.log('add event:', event);
-  return this.eventEmitter.add(event, fn, once);
+  return this.eventEmitter.on(event, fn, once);
 }
 
 
