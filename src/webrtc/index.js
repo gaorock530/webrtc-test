@@ -53,7 +53,7 @@ export default class WebRTCContainer extends React.PureComponent{
   changeStream = async (e) => {
     const option = {
       'audio': !!parseInt(this.audioOp.value),
-      'video': {facingMode: this.camOp}
+      'video': {facingMode: this.camOp.value}
     }
     if (!parseInt(this.videoOp.value)) {
       option.video = false;
