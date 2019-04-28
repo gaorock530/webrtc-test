@@ -12,7 +12,7 @@ export default class WebRTCContainer extends React.PureComponent{
   componentDidMount () {
     this.webtrc.on('track', (e) => {
       this.appendStatus(`on track: ${e.toString()}`);
-      if (e.streams && this.remoteVideo.srcObject !== e.streams[0]) {
+      if (e.streams) {
         this.appendStatus('remotePeerConnection got stream');
         try{
           this.remoteVideo.srcObject = e.streams[0];
