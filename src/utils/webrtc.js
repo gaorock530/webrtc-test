@@ -53,7 +53,7 @@ const defalutConfiguration = {
   /** @param sdpSemantics */
   // "plan-b"
   // "unified-plan"
-  sdpSemantics: 'unified-plan'
+  sdpSemantics: 'plan-b'
 
 };
 
