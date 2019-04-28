@@ -11,13 +11,13 @@ export default class WebRTCContainer extends React.PureComponent{
 
   componentDidMount () {
     this.webtrc.on('track', (e) => {
-      console.log('track:', e);
+      this.appendStatus(`on track: ${e.toString()}`);
       if (e.streams && this.remoteVideo.srcObject !== e.streams[0]) {
-        console.log('remotePeerConnection got stream');
+        this.appendStatus('remotePeerConnection got stream');
         try{
           this.remoteVideo.srcObject = e.streams[0];
         }catch(e) {
-          console.warn(e);
+          this.appendStatus(e.toString(), 'red');
         }
         
       }else if (!e.streams){
@@ -25,7 +25,7 @@ export default class WebRTCContainer extends React.PureComponent{
       }
     });
     this.webtrc.on('negotiationNeeded', (e) => {
-      console.log('negotiationNeeded', e)
+      this.appendStatus('negotiationNeeded')
     })
     // this.webtrc.on('', (e) => console.log(e));
   }
@@ -37,7 +37,7 @@ export default class WebRTCContainer extends React.PureComponent{
       await this.webtrc.createOffer();
       
     }catch(e) {
-
+      this.appendStatus(e.toString(), 'red')
     }
   }
 
@@ -82,15 +82,6 @@ export default class WebRTCContainer extends React.PureComponent{
     el.innerText = info;
     if (color) el.style.color = color;
     this.status.appendChild(el);
-  }
-
-  sendMessage = () => {
-    if (!this.input.value) return;
-    const msg = document.createElement('p');
-    msg.innerText = this.input.value
-    this.messageArea.appendChild(msg);
-    this.input.value = '';
-    this.input.focus();
   }
 
   
