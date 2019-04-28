@@ -10,6 +10,7 @@ export default class WebRTCContainer extends React.PureComponent{
   }
 
   componentDidMount () {
+    this.webtrc.establishConnection();
     this.webtrc.on('track', (e) => {
       this.appendStatus(`on track: ${e.toString()}`);
       if (e.streams) {
@@ -32,6 +33,7 @@ export default class WebRTCContainer extends React.PureComponent{
 
   startVideo = async () => {
     try {
+      this.webtrc.establishConnection();
       this.localVideo.srcObject = await this.webtrc.setupLocalMediaStream();
       this.webtrc.addStream();
       await this.webtrc.createOffer();
@@ -43,15 +45,10 @@ export default class WebRTCContainer extends React.PureComponent{
 
   endVideo = async () => {
     try {
-      this.webtrc.endStream();
+      this.webtrc.closeConnection();
     }catch(e) {
 
     }
-  }
-
-  connect = async () => {
-    const err = await this.webtrc.createOffer();
-    if (err) console.log(err);
   }
 
   changeStream = async (e) => {
@@ -65,10 +62,7 @@ export default class WebRTCContainer extends React.PureComponent{
     this.webtrc.endStream();
     try {
       if (option.video || option.audio) {
-        this.localVideo.srcObject = await this.webtrc.setupLocalMediaStream(option);
-        // const a = await this.webtrc.changeStream();
-        // console.log('replace track:', a)
-        
+        this.localVideo.srcObject = await this.webtrc.setupLocalMediaStream(option);        
         this.webtrc.addStream();
       }
       await this.webtrc.createOffer();
@@ -104,8 +98,7 @@ export default class WebRTCContainer extends React.PureComponent{
                 <option value="user">user</option>
                 <option value="environment">environment</option>
               </select>
-              <button className="offer-button" onClick={this.startVideo}>Setup</button>
-              <button className="offer-button" onClick={this.connect}>Start</button>
+              <button className="offer-button" onClick={this.startVideo}>Start</button>
               <button className="offer-button" onClick={this.endVideo}>Stop</button>
             </div>
             <div className="video-wrapper">

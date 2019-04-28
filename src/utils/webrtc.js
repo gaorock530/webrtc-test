@@ -7,6 +7,7 @@ import stunServer from 'webrtc/stun-servers.json';
 import Event from 'utils/event';
 // import iceParser from 'utils/iceParser';
 import Socket from 'utils/signal';
+import Debouncer from 'utils/debouncer';
 
 const defalutConfiguration = {
   /** @param iceServers */
@@ -71,6 +72,7 @@ function WebRTC (configuration) {
   this.iceTray = [];                                                              // temp ICE canadites
   this.eventEmitter = new Event();
   this.signaling = new Socket(process.env.REACT_APP_WS_PATH, {attempt: 10, retryIn: 3, arraybuffer: false})
+  this.tempOffer = null;
 
   this.localStream = null;
   this.onConnectionStateChange = this.onConnectionStateChange.bind(this);
@@ -114,11 +116,13 @@ WebRTC.prototype.init = function () {
     if (typeof defalutConfiguration[key] === 'undefined') return console.error(key, 'in options is Not valid.');
   });
   if (!this.AllCorrect) return console.error('Policy error.');
-  this.establishConnection();
+  this.boundSingling();
 }
 
-WebRTC.prototype.establishConnection = function () {
+WebRTC.prototype.establishConnection = async function () {
+  if (this.PeerConnection) return;
   this.PeerConnection = new RTCPeerConnection(this.configuration);
+  if (!this.PeerConnection) throw Error('Unable to establish RTCPeerConnection.');
   // bound events
   Event.attach(this.PeerConnection, 'connectionstatechange', this.onConnectionStateChange);
   Event.attach(this.PeerConnection, 'datachannel', this.onDataChannel);
@@ -128,14 +132,18 @@ WebRTC.prototype.establishConnection = function () {
   Event.attach(this.PeerConnection, 'negotiationneeded', this.onNegotiationNeeded);
   Event.attach(this.PeerConnection, 'signalingstatechange', this.onSignalingStateChange);
   Event.attach(this.PeerConnection, 'track', this.onTrack);
-  this.boundSingling();
+  if (this.tempOffer) await this.createAnswer(this.tempOffer);
 }
 
 WebRTC.prototype.closeConnection = async function () {
   if (!this.PeerConnection) return;
-  this.PeerConnection.close();
-  await this.PeerConnection.getStats(null);
-
+  try {
+    this.endStream();
+    this.PeerConnection.close();
+    await this.PeerConnection.getStats(null);
+  } catch(e) {
+    throw Error(e);
+  }
   Event.detach(this.PeerConnection, 'connectionstatechange', this.onConnectionStateChange);
   Event.detach(this.PeerConnection, 'datachannel', this.onDataChannel);
   Event.detach(this.PeerConnection, 'icecandidate', this.onIceCandidate);
@@ -158,7 +166,7 @@ WebRTC.prototype.boundSingling = function () {
     const addIce = async (ice) => {
       await this.PeerConnection.addIceCandidate(new RTCIceCandidate(ice));
     }
-    if (this.PeerConnection.remoteDescription) {
+    if (this.PeerConnection && this.PeerConnection.remoteDescription) {
       try {
         const iceNumber = this.iceTray.length;
         if (iceNumber > 0) {
@@ -172,22 +180,13 @@ WebRTC.prototype.boundSingling = function () {
       }
     } else {
       this.iceTray.push(new RTCIceCandidate(data));
+
     }
   })
   this.signaling.on('offer', async (data) => {
     console.log(data);
-    
-    try {
-      // ('Set remote SDP .')
-      await this.PeerConnection.setRemoteDescription(new RTCSessionDescription(data));
-      // ('Anwser for remote .')
-      const description = await this.PeerConnection.createAnswer();
-      // ('Set local SDP .')
-      this.PeerConnection.setLocalDescription(description);
-      this.signaling.emit('answer', description);
-    }catch(e) {
-      console.warn(e)
-    }
+    if (!this.PeerConnection) return this.tempOffer = new RTCSessionDescription(data);
+    await this.createAnswer(data);
   });
 
   this.signaling.on('answer', async (data) => {
@@ -202,23 +201,7 @@ WebRTC.prototype.boundSingling = function () {
 }
 
 WebRTC.prototype.addStream = function () {
-  this.localStream.getTracks().forEach(track => console.log(this.PeerConnection.addTrack(track, this.localStream)));
-}
-
-WebRTC.prototype.changeStream = function (pc, track) {
-  
-  if (this.localStream) {
-    this.localStream.getTracks().forEach(track => {
-      console.log('change stream kind:', track.kind);
-      const sender = this.PeerConnection.getSenders().find((s) => s.track.kind === track.kind);
-      console.log(sender);
-      sender.replaceTrack(track);
-      console.log(sender);
-    });
-  } else {
-    return false;
-  }
-  
+  if (this.localStream) this.localStream.getTracks().forEach(track => console.log(this.PeerConnection.addTrack(track, this.localStream)));
 }
 
 WebRTC.prototype.endStream = function () {
@@ -226,6 +209,24 @@ WebRTC.prototype.endStream = function () {
   this.localStream.getTracks().forEach(track => track.stop());
   this.localStream = null;
 }
+
+// WebRTC.prototype.changeStream = function (pc, track) {
+  
+//   if (this.localStream) {
+//     this.localStream.getTracks().forEach(track => {
+//       console.log('change stream kind:', track.kind);
+//       const sender = this.PeerConnection.getSenders().find((s) => s.track.kind === track.kind);
+//       console.log(sender);
+//       sender.replaceTrack(track);
+//       console.log(sender);
+//     });
+//   } else {
+//     return false;
+//   }
+  
+// }
+
+
 
 WebRTC.prototype.onConnectionStateChange = function (ev) {
   let state = 0;
@@ -357,8 +358,24 @@ WebRTC.prototype.createOffer = async function () {
     await this.PeerConnection.setLocalDescription(new RTCSessionDescription(offer));
     this.signaling.emit('offer', this.PeerConnection.localDescription);
   }catch(e) {
-    return e;
+    throw e;
   } 
+}
+
+WebRTC.prototype.createAnswer = async function (sdp) {
+  // !!!!!! NEED change if multi Peer 
+  try {
+    // ('Set remote SDP .')
+    await this.PeerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
+    // ('Anwser for remote .')
+    const description = await this.PeerConnection.createAnswer();
+    // ('Set local SDP .')
+    this.PeerConnection.setLocalDescription(description);
+    this.signaling.emit('answer', description);
+    // this.tempOffer = null;
+  }catch(e) {
+    console.warn(e)
+  }
 }
 
 WebRTC.prototype.on = function (event, fn, once) {
