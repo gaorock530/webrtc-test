@@ -7,7 +7,6 @@ import stunServer from 'webrtc/stun-servers.json';
 import Event from 'utils/event';
 // import iceParser from 'utils/iceParser';
 import Socket from 'utils/signal';
-import { Promise } from 'q';
 
 const defalutConfiguration = {
   /** @param iceServers */
@@ -206,8 +205,24 @@ WebRTC.prototype.addStream = function () {
   this.localStream.getTracks().forEach(track => console.log(this.PeerConnection.addTrack(track, this.localStream)));
 }
 
+WebRTC.prototype.changeStream = function (pc, track) {
+  
+  if (this.localStream) {
+    this.localStream.getTracks().forEach(track => {
+      console.log('change stream kind:', track.kind);
+      const sender = this.PeerConnection.getSenders().find((s) => s.track.kind === track.kind);
+      console.log(sender);
+      sender.replaceTrack(track);
+      console.log(sender);
+    });
+  } else {
+    return false;
+  }
+  
+}
+
 WebRTC.prototype.endStream = function () {
-  // this.PeerConnection.removeTrack(this.sender);
+  if (!this.localStream) return;
   this.localStream.getTracks().forEach(track => track.stop());
   this.localStream = null;
 }
@@ -282,13 +297,13 @@ const mediaStreamConstraint = {
 }
 
 WebRTC.prototype.setupLocalMediaStream = async function (option) {
-  if (this.localStream) {
-    this.localStream.getTracks().forEach(track => track.stop());
-    const videoTracks = this.localStream.getVideoTracks();
-    for (let i = 0; i !== videoTracks.length; ++i) {
-      videoTracks[i].stop();
-    }
-  }
+  // if (this.localStream) {
+  //   this.localStream.getTracks().forEach(track => track.stop());
+  //   const videoTracks = this.localStream.getVideoTracks();
+  //   for (let i = 0; i !== videoTracks.length; ++i) {
+  //     videoTracks[i].stop();
+  //   }
+  // }
   try {
     if (option && option.video.facingMode) {
       option.video = {
@@ -300,9 +315,13 @@ WebRTC.prototype.setupLocalMediaStream = async function (option) {
     }
     
     const setup = getUserMediaConstraints(option || {audio: true});
-    console.log(option)
     console.log(setup);
     const stream = await navigator.mediaDevices.getUserMedia(setup);
+
+    // const videoTrack = stream.getVideoTracks()[0];
+    // changeStream(this.PeerConnection, videoTrack);
+    // changeStream(this.PeerConnection, videoTrack);
+
     this.localStream = stream;
     return this.localStream;
   }catch(e) {
@@ -310,6 +329,8 @@ WebRTC.prototype.setupLocalMediaStream = async function (option) {
     throw Error(e);
   }
 }
+
+
 
 WebRTC.prototype.createOffer = async function () {
   const offerOption = {

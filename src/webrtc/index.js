@@ -24,6 +24,9 @@ export default class WebRTCContainer extends React.PureComponent{
         this.remoteVideo.pause();
       }
     });
+    this.webtrc.on('negotiationNeeded', (e) => {
+      console.log('negotiationNeeded', e)
+    })
     // this.webtrc.on('', (e) => console.log(e));
   }
 
@@ -32,6 +35,7 @@ export default class WebRTCContainer extends React.PureComponent{
       this.localVideo.srcObject = await this.webtrc.setupLocalMediaStream();
       this.webtrc.addStream();
       await this.webtrc.createOffer();
+      
     }catch(e) {
 
     }
@@ -58,16 +62,18 @@ export default class WebRTCContainer extends React.PureComponent{
     if (!parseInt(this.videoOp.value)) {
       option.video = false;
     }
+    this.webtrc.endStream();
     try {
       if (option.video || option.audio) {
         this.localVideo.srcObject = await this.webtrc.setupLocalMediaStream(option);
+        // const a = await this.webtrc.changeStream();
+        // console.log('replace track:', a)
+        
         this.webtrc.addStream();
-      }else {
-        this.webtrc.endStream();
       }
       await this.webtrc.createOffer();
     }catch(e) {
-
+      console.warn(e);
     }
   }
 
