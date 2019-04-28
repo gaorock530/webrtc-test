@@ -290,6 +290,14 @@ WebRTC.prototype.setupLocalMediaStream = async function (option) {
     }
   }
   try {
+    if (option && option.video.facingMode) {
+      option.video = {
+        width: { min: 640, ideal: 1280, max: 1920 },
+        height: { min: 480, ideal: 720, max: 1080 },
+        frameRate: {min: 24, ideal: 30, max: 60},
+        facingMode: option.video.facingMode,
+      }
+    }
     const setup = getUserMediaConstraints(option || {audio: true});
     console.log(option)
     console.log(setup);

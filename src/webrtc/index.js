@@ -52,8 +52,11 @@ export default class WebRTCContainer extends React.PureComponent{
 
   changeStream = async (e) => {
     const option = {
-      'video': !!parseInt(this.videoOp.value),
-      'audio': !!parseInt(this.audioOp.value)
+      'audio': !!parseInt(this.audioOp.value),
+      'video': {facingMode: this.camOp}
+    }
+    if (!parseInt(this.videoOp.value)) {
+      option.video = false;
     }
     try {
       if (option.video || option.audio) {
@@ -99,6 +102,10 @@ export default class WebRTCContainer extends React.PureComponent{
               <select onChange={this.changeStream} ref={el => this.audioOp = el}>
                 <option value={1}>audio on</option>
                 <option value={0}>audio off</option>
+              </select>
+              <select onChange={this.changeStream} ref={el => this.camOp = el}>
+                <option value="user">user</option>
+                <option value="environment">environment</option>
               </select>
               <button className="offer-button" onClick={this.startVideo}>Setup</button>
               <button className="offer-button" onClick={this.connect}>Start</button>
