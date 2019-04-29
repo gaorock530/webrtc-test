@@ -67,6 +67,7 @@ export default class WebRTCContainer extends React.PureComponent{
       this.localVideo.srcObject = await this.webtrc.setupLocalMediaStream();
       this.webtrc.addStream();
       await this.webtrc.createOffer();
+      this.statsObserve.reset();
     }catch(e) {
       this.appendStatus(e.toString(), 'red')
     }
@@ -96,6 +97,7 @@ export default class WebRTCContainer extends React.PureComponent{
         this.webtrc.addStream();
       }
       await this.webtrc.createOffer();
+      this.statsObserve.reset();
     }catch(e) {
       console.warn(e);
     }

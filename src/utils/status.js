@@ -10,38 +10,15 @@ function Status () {
   this.videoFrames = 0;
 }
 
-
-/*
-{
-  bytesSent:  ```                                    // type=transport
-  bytesReceived:   ```                               // type=transport
-  tansportProtocol:~~~~~~
-  candidateType: ~~~~~~
-  availableOutgoingBitrate: ~~~~~~~
-  priority: ~~~~~~
-
-  localAddress:      ~~~~                             // 
-  remoteAddress: ~~~~~
-
-  videoCodec:~~~~~~~~~~
-  videoClockRate:~~~~~~~~~
-  audioCodec:~~~~~~~~~
-  audioClockRate:~~~~~~~~
-  audioSampleRate:~~~~~~~~~~~~
-
-  audioBitrate:~~~~~~~~~~
-  audioLevel:~~~~~~~~~~~~
-  audioEnergy:~~~~~~~~~
-
-  videoFrameWidth:
-  videoFrameHeight:
-  videoFrameRate:
-  videoFrameDrop:
-  videoBitrate: ~~~~~~~~~~~~
-  
-
+Status.prototype.reset = function() {
+  this.videoBytesPrev = 0;
+  this.audioBytesPrev = 0;
+  this.videoTimestampPrev = 0;
+  this.audioTimestampPrev = 0;
+  this.videoFrames = 0;
 }
- */
+
+
 Status.prototype.show = function (results) {
   const output = {};
 
@@ -177,3 +154,33 @@ Status.prototype.show = function (results) {
 }
 
 export default Status;
+
+/*
+{
+  bytesSent: 
+  bytesReceived:  
+  tansportProtocol:
+  candidateType: 
+  availableOutgoingBitrate:
+  priority: 
+
+  localAddress:                 
+  remoteAddress: 
+
+  videoCodec:
+  videoClockRate:
+  audioCodec:
+  audioClockRate:
+  audioSampleRate:
+
+  audioBitrate:
+  audioLevel:
+  audioEnergy:
+
+  videoFrameWidth:
+  videoFrameHeight:
+  videoFrameRate:
+  videoFrameDrop:
+  videoBitrate: 
+}
+ */
