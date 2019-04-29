@@ -122,7 +122,6 @@ WebRTC.prototype.init = function () {
 WebRTC.prototype.establishConnection = async function () {
   if (this.PeerConnection) return;
   this.PeerConnection = new RTCPeerConnection(this.configuration);
-  if (!this.PeerConnection) throw Error('Unable to establish RTCPeerConnection.');
   // bound events
   Event.attach(this.PeerConnection, 'connectionstatechange', this.onConnectionStateChange);
   Event.attach(this.PeerConnection, 'datachannel', this.onDataChannel);

@@ -1,12 +1,13 @@
-import iceParser from 'utils/iceParser';
+// import iceParser from 'utils/iceParser';
 import React from 'react';
 import WebRTC from 'utils/webrtc';
+import Status from 'utils/status';
 
 export default class WebRTCContainer extends React.PureComponent{
   constructor (props) {
     super(props);
     this.webtrc = new WebRTC();
-    
+    this.statsObserve = new Status();
   }
 
   componentDidMount () {
@@ -28,7 +29,36 @@ export default class WebRTCContainer extends React.PureComponent{
     this.webtrc.on('negotiationNeeded', (e) => {
       this.appendStatus('negotiationNeeded')
     })
-    // this.webtrc.on('', (e) => console.log(e));
+    this.timer = setInterval(() => {
+      if (this.webtrc.PeerConnection) {
+        this.webtrc.PeerConnection
+          .getStats(null)
+          .then(this.showRemoteStats, err => console.log(err));
+      }
+      // // Collect some stats from the video tags.
+      // if (this.localVideo.videoWidth) {
+      //   const width = this.localVideo.videoWidth;
+      //   const height = this.localVideo.videoHeight;
+      //   this.localD.innerHTML = `<strong>Video dimensions:</strong> ${width}x${height}px`;
+      // }
+      // if (this.remoteVideo.videoWidth) {
+      //   const rHeight = this.remoteVideo.videoHeight;
+      //   const rWidth = this.remoteVideo.videoWidth;
+      //   this.remoteD.innerHTML = `<strong>Video dimensions:</strong> ${rWidth}x${rHeight}px`;
+      // }
+    }, 1000);
+  }
+
+
+
+  showRemoteStats = (results) => {
+    let output = '';
+    const info = this.statsObserve.show(results);
+    Object.keys(info).forEach(k => {
+      const line = `<p><b>${k}:</b> <span class='green'>${info[k]}</span></p>`;
+      output+=line;
+    })
+    this.info.innerHTML = output;
   }
 
   startVideo = async () => {
@@ -37,7 +67,6 @@ export default class WebRTCContainer extends React.PureComponent{
       this.localVideo.srcObject = await this.webtrc.setupLocalMediaStream();
       this.webtrc.addStream();
       await this.webtrc.createOffer();
-      
     }catch(e) {
       this.appendStatus(e.toString(), 'red')
     }
@@ -46,6 +75,7 @@ export default class WebRTCContainer extends React.PureComponent{
   endVideo = async () => {
     try {
       this.webtrc.closeConnection();
+      clearInterval(this.timer);
     }catch(e) {
 
     }
@@ -103,11 +133,13 @@ export default class WebRTCContainer extends React.PureComponent{
             </div>
             <div className="video-wrapper">
               <div>
-                <p>Local</p>
+                <p>Local:</p>
+                <p ref={el => this.localD = el}></p>
                 <video className="video" playsInline muted autoPlay={true} ref={el => this.localVideo = el}></video>
               </div>
               <div>
                 <p>Remote</p>
+                <p ref={el => this.remoteD = el}></p>
                 <video className="video" playsInline autoPlay={true} ref={el => this.remoteVideo = el}></video>
               </div>
             </div>
@@ -131,8 +163,8 @@ export default class WebRTCContainer extends React.PureComponent{
               </div>
             </div>
           </div>
-          <div className="webrtc-utils-r">
-            
+          <div className="webrtc-utils-r" ref={el => this.info = el}>
+
           </div>
         </div>
         <div className="webrtc-stats" ref={el => this.status = el}>
