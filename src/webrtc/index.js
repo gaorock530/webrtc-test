@@ -35,17 +35,17 @@ export default class WebRTCContainer extends React.PureComponent{
           .getStats(null)
           .then(this.showRemoteStats, err => console.log(err));
       }
-      // // Collect some stats from the video tags.
-      // if (this.localVideo.videoWidth) {
-      //   const width = this.localVideo.videoWidth;
-      //   const height = this.localVideo.videoHeight;
-      //   this.localD.innerHTML = `<strong>Video dimensions:</strong> ${width}x${height}px`;
-      // }
-      // if (this.remoteVideo.videoWidth) {
-      //   const rHeight = this.remoteVideo.videoHeight;
-      //   const rWidth = this.remoteVideo.videoWidth;
-      //   this.remoteD.innerHTML = `<strong>Video dimensions:</strong> ${rWidth}x${rHeight}px`;
-      // }
+      // Collect some stats from the video tags.
+      if (this.localVideo.videoWidth) {
+        const width = this.localVideo.videoWidth;
+        const height = this.localVideo.videoHeight;
+        this.localD.innerHTML = `${width} x ${height} px`;
+      }
+      if (this.remoteVideo.videoWidth) {
+        const rHeight = this.remoteVideo.videoHeight;
+        const rWidth = this.remoteVideo.videoWidth;
+        this.remoteD.innerHTML = `${rWidth} x ${rHeight} px`;
+      }
     }, 1000);
   }
 
@@ -133,13 +133,12 @@ export default class WebRTCContainer extends React.PureComponent{
             </div>
             <div className="video-wrapper">
               <div>
-                <p>Local:</p>
-                <p ref={el => this.localD = el}></p>
+                <p>Local: <span ref={el => this.localD = el}></span></p>
                 <video className="video" playsInline muted autoPlay={true} ref={el => this.localVideo = el}></video>
               </div>
               <div>
-                <p>Remote</p>
-                <p ref={el => this.remoteD = el}></p>
+                <p>Remote: <span ref={el => this.remoteD = el}></span></p>
+                
                 <video className="video" playsInline autoPlay={true} ref={el => this.remoteVideo = el}></video>
               </div>
             </div>
